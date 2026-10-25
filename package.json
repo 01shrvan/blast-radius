@@ -1,0 +1,9 @@
+{
+  "name": "blast-radius",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node figure/build.mjs && node figure/build.mjs --light",
+    "test": "node --test engine/sim.test.mjs"
+  }
+}
