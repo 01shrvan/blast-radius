@@ -251,6 +251,7 @@ export function bench(spec) {
     out.push(L(ticks.minor, { tone: "lo" }), L(ticks.major, { tone: "mid" }));
     out.push(L(k.ring(x, y, 1.8, GAUGE_TOP, P, 16), { tone: "mid" }));
     out.push(k.faceTextSvg(k.topMatrix([x, y + 10], GAUGE_TOP, P, "x"), "%", { size: 3, tone: "lo", anchor: "middle" }));
+    out.push(`<path data-part="ghost-needle" class="rr-ghost" data-free="start" d="${gaugeNeedle(1)}"/>`);
     out.push(`<path data-part="gauge-needle" class="iso-line" data-tone="lit" data-free="start" d="${gaugeNeedle(1)}" style="stroke-width:1.2"/>`);
     return out.join("");
   }

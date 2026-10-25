@@ -79,6 +79,18 @@ ${facts ? `<div class="br-facts">${facts}</div>` : ""}
       <input id="scrub" type="range" data-scrub min="0" max="${minutesOf(spec.clock) * 60}" step="5" value="0" aria-label="Replay clock">
       <output data-clock>${esc(spec.clock.from)}:00</output>
     </div>
+    <div class="br-modes">
+      <button type="button" class="br-link-button" data-oncall-start>Take the on-call shift</button>
+      <button type="button" class="br-link-button" data-sound aria-pressed="false">Sound off</button>
+      <span class="br-muted" data-ghost-note hidden>Faint needle: what really happened</span>
+    </div>
+    <div class="br-oncall" data-oncall hidden>
+      <p class="br-oncall-status" data-oncall-text></p>
+      <div class="br-oncall-result" data-oncall-result hidden>
+        <p data-oncall-score></p>
+        <div class="br-actions"><button type="button" class="br-link-button" data-copy>Copy my result</button><button type="button" class="br-link-button" data-oncall-start>Try again</button><button type="button" class="br-link-button" data-oncall-exit>Back to the replay</button></div>
+      </div>
+    </div>
   </div>
 </section>
 ${figure(spec, svg)}

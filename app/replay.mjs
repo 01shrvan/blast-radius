@@ -3,6 +3,34 @@ import { simulate, actualLevers, toSeconds, toClock } from "../engine/sim.mjs";
 import { esc } from "./views.mjs";
 
 const WALL = 45;
+const SLOW = 0.35;
+
+function synth() {
+  let context = null;
+  const ensure = () => (context ??= new (window.AudioContext || window.webkitAudioContext)());
+  const tone = (freq, duration, { type = "sine", gain = 0.06, slide = 0, delay = 0 } = {}) => {
+    const ctx = ensure();
+    const at = ctx.currentTime + delay;
+    const osc = ctx.createOscillator();
+    const amp = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, at);
+    if (slide) osc.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), at + duration);
+    amp.gain.setValueAtTime(0.0001, at);
+    amp.gain.exponentialRampToValueAtTime(gain, at + 0.01);
+    amp.gain.exponentialRampToValueAtTime(0.0001, at + duration);
+    osc.connect(amp).connect(ctx.destination);
+    osc.start(at);
+    osc.stop(at + duration + 0.02);
+  };
+  return {
+    wake: () => ensure().resume(),
+    drop: () => tone(1400, 0.05, { type: "square", gain: 0.025 }),
+    alarm: () => { for (let n = 0; n < 3; n += 1) tone(880, 0.16, { type: "triangle", gain: 0.07, delay: n * 0.24 }); },
+    thunk: () => { tone(140, 0.22, { type: "sine", gain: 0.12, slide: -80 }); tone(60, 0.3, { type: "triangle", gain: 0.08 }); },
+    crash: () => tone(220, 0.35, { type: "sawtooth", gain: 0.03, slide: -150 }),
+  };
+}
 const ARMED = -0.45;
 const THROWN = 0.85;
 
@@ -19,6 +47,7 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const [shuttle] = pick("shuttle");
   const [leverGroup] = pick("lever");
   const [gaugeEl] = pick("gauge-needle");
+  const [ghostEl] = pick("ghost-needle");
   const [head] = pick("playhead");
   const [pins] = pick("events");
   const readout = root.querySelector("[data-readout]");
@@ -31,9 +60,28 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const reenable = spec.events.find((event) => event.kind === "reenable");
   const reenableAt = reenable ? toSeconds(reenable.at, spec.clock.from) : Infinity;
 
-  let levers = { ...actual };
+  const responseLever = spec.levers.find((item) => item.kind === "response");
+  const fromHash = () => {
+    const params = new URLSearchParams(location.hash.slice(1));
+    const next = { ...actual };
+    for (const lever of spec.levers) {
+      const value = params.get(lever.id);
+      if (value === null) continue;
+      if (lever.options?.includes(value)) next[lever.id] = value;
+      if (lever.range && Number(value) >= lever.range[0] && Number(value) <= lever.range[1]) next[lever.id] = Number(value);
+    }
+    return next;
+  };
+  let levers = panel ? fromHash() : { ...actual };
+  const baselineRun = simulate(spec, actual);
+  const baseline = baselineRun.summary;
   let run = simulate(spec, levers);
-  const baseline = run.summary;
+  let mode = "free";
+  let holdUntil = 0;
+  let sound = null;
+  let lastT = 0;
+  let lastFront = -1;
+  let wasDown = 0;
   let t = 0;
   let playing = autoplay && !still.matches;
   let visible = false;
@@ -47,8 +95,8 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const clockOf = (seconds) => toClock(seconds, spec.clock.from);
   const $ = (selector) => panel?.querySelector(selector);
 
-  function sampleAt(time) {
-    const list = run.samples;
+  function sampleAt(time, source = run) {
+    const list = source.samples;
     const index = Math.min(list.length - 1, Math.max(0, time / 5));
     const lo = list[Math.floor(index)];
     const hi = list[Math.min(list.length - 1, Math.ceil(index))];
@@ -95,6 +143,11 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
     }
     shown.traffic = follow(shown.traffic, now.traffic, dt, 0.15);
     gaugeEl.setAttribute("d", B.gaugeNeedle(Math.min(1, Math.max(0, shown.traffic))));
+    const differs = mode === "free" && !sameAsActual();
+    if (ghostEl) {
+      ghostEl.toggleAttribute("data-on", differs);
+      if (differs) ghostEl.setAttribute("d", B.gaugeNeedle(Math.min(1, Math.max(0, sampleAt(t, baselineRun).traffic))));
+    }
     const killed = run.summary.kill !== null && t >= run.summary.kill;
     shown.lever = follow(shown.lever, killed ? THROWN : ARMED, dt, 0.12);
     leverGroup.innerHTML = B.lever(shown.lever);
@@ -105,6 +158,103 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
       $("[data-scrub]").value = String(Math.round(t));
       $("[data-clock]").textContent = clockOf(t);
     }
+    cues(front, hit);
+    if (mode === "oncall") shift();
+    lastT = t;
+  }
+
+  function cues(front, hit) {
+    if (!sound || t < lastT) { lastFront = front; wasDown = hit; return; }
+    if (front > lastFront && front >= 0) sound.drop();
+    const page = run.summary.page;
+    if (page !== null && lastT < page && t >= page) sound.alarm();
+    const kill = run.summary.kill;
+    if (kill !== null && lastT < kill && t >= kill) sound.thunk();
+    if (hit > wasDown && hit === COUNT) sound.crash();
+    lastFront = front;
+    wasDown = hit;
+  }
+
+  const sameAsActual = () => Object.keys(actual).every((id) => String(actual[id]) === String(levers[id]));
+  const realPage = baseline.page;
+  const realKill = baseline.kill;
+  const pageQuote = spec.events.find((event) => event.kind === "page")?.quote;
+  const deployAt = toSeconds(spec.events.find((event) => event.kind === "deploy").at, spec.clock.from);
+
+  function shift() {
+    const text = $("[data-oncall-text]");
+    if (realPage === null || t < realPage) {
+      if (performance.now() < holdUntil) return;
+      text.removeAttribute("data-alert");
+      const said = t < deployAt ? "Quiet shift. Everything on the board is green." : "Something on the board looks off. Nobody has paged you yet.";
+      if (text.textContent !== said) text.textContent = said;
+      return;
+    }
+    if (!text.hasAttribute("data-alert")) {
+      text.setAttribute("data-alert", "");
+      text.textContent = pageQuote ? `You've been paged: "${pageQuote}". Pull the ${spec.figure.kill} when you're sure.` : `Something is badly wrong. Pull the ${spec.figure.kill} when you're sure.`;
+    }
+    if (t >= realPage + responseLever.range[1] * 60) finishShift(null);
+  }
+
+  function lock(locked) {
+    for (const control of panel.querySelectorAll("[data-lever] button, [data-lever] input, [data-reset], [data-scrub]")) control.disabled = locked;
+    root.querySelector("#timeline")?.classList.toggle("br-hidden", locked);
+  }
+
+  function startShift() {
+    mode = "oncall";
+    levers = { ...actual, [responseLever.id]: responseLever.range[1] };
+    run = simulate(spec, levers);
+    t = 0;
+    lastT = 0;
+    playing = true;
+    rest = 0;
+    $("[data-oncall]").hidden = false;
+    $("[data-oncall-result]").hidden = true;
+    $("[data-oncall-text]").removeAttribute("data-alert");
+    $("[data-play]").textContent = "Pause";
+    $("[data-copy]").textContent = "Copy my result";
+    lock(true);
+    drawPins();
+    render();
+    stage.scrollIntoView({ behavior: still.matches ? "auto" : "smooth", block: "center" });
+    start();
+  }
+
+  function finishShift(minutes) {
+    if (minutes !== null) levers = { ...actual, [responseLever.id]: minutes };
+    run = simulate(spec, levers);
+    mode = "done";
+    const mine = run.summary;
+    const text = $("[data-oncall-text]");
+    text.removeAttribute("data-alert");
+    text.textContent = minutes === null ? `You never pulled the ${spec.figure.kill}.` : `You pulled the ${spec.figure.kill} at ${clockOf(mine.kill)}.`;
+    const diff = Math.round((realKill - mine.kill) / 60);
+    const saved = baseline.lostTrafficMinutes > 0 ? Math.round((1 - mine.lostTrafficMinutes / baseline.lostTrafficMinutes) * 100) : 0;
+    const team = `${esc(spec.company)}'s team`;
+    const versus = diff > 0 ? `<b>${diff} min faster</b> than ${team}` : diff < 0 ? `<b>${-diff} min slower</b> than ${team}` : `the same minute as ${team}`;
+    const traffic = saved > 0 ? `, and your replay lost <b>${saved}% less traffic</b>` : saved < 0 ? `, and your replay lost <b>${-saved}% more traffic</b>` : "";
+    $("[data-oncall-score]").innerHTML = minutes === null
+      ? `The real team pulled it at ${clockOf(realKill)}.`
+      : `That's ${versus}${traffic}. They found out in real time, under pressure. You had a replay, so read the timeline below to see what slowed them down.`;
+    $("[data-oncall-result]").hidden = false;
+    const said = diff > 0 ? `${diff} min faster than the real team` : diff < 0 ? `${-diff} min slower than the real team` : "at the same minute as the real team";
+    $("[data-oncall-result]").dataset.share = minutes === null ? "" : `I took the on-call shift for the ${spec.company} outage of ${spec.date} on Blast Radius and pulled the ${spec.figure.kill} ${said}. ${location.origin}${location.pathname}`;
+    $("[data-copy]").hidden = minutes === null;
+    lock(false);
+    for (const control of panel.querySelectorAll("[data-lever] button, [data-lever] input, [data-reset]")) control.disabled = true;
+    playing = true;
+    drawPins();
+    render();
+  }
+
+  function exitShift() {
+    mode = "free";
+    levers = { ...actual };
+    $("[data-oncall]").hidden = true;
+    lock(false);
+    rerun();
   }
 
   function tick(stamp) {
@@ -115,8 +265,14 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
         rest -= dt;
         if (rest <= 0) t = 0;
       } else {
-        t += (END / WALL) * dt;
-        if (t >= END) { t = END; rest = 2.5; }
+        const alert = mode === "oncall" && realPage !== null && t >= realPage;
+        t += (END / WALL) * dt * (alert ? SLOW : 1);
+        if (t >= END) {
+          t = END;
+          if (mode === "oncall") finishShift(null);
+          if (mode === "done") playing = false;
+          else rest = 2.5;
+        }
       }
     }
     draw(dt);
@@ -156,10 +312,27 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
     run = simulate(spec, levers);
     drawPins();
     render();
+    if (panel && mode === "free") {
+      const params = new URLSearchParams();
+      for (const lever of spec.levers) if (String(levers[lever.id]) !== String(actual[lever.id])) params.set(lever.id, String(levers[lever.id]));
+      const hash = params.toString();
+      history.replaceState(null, "", hash ? `#${hash}` : location.pathname + location.search);
+      $("[data-ghost-note]").hidden = !hash;
+    }
     start();
   }
 
   function pullNow() {
+    if (mode === "oncall") {
+      if (realPage === null || t < realPage) {
+        holdUntil = performance.now() + 2600;
+        $("[data-oncall-text]").textContent = "Nobody has paged you yet. Pulling a global switch on a hunch is how outages start.";
+        return;
+      }
+      const minutes = Math.max(responseLever.range[0], Math.min(responseLever.range[1], Math.round((t - realPage) / 60)));
+      return finishShift(minutes);
+    }
+    if (mode === "done") return;
     const { page } = run.summary;
     const note = $("[data-pull-note]");
     const say = (text) => { if (note) note.textContent = text; };
@@ -210,6 +383,26 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
     $("[data-reset]").addEventListener("click", () => { levers = { ...actual }; rerun(); });
     $("[data-pull]").addEventListener("click", pullNow);
     $("[data-play]").textContent = playing ? "Pause" : "Play";
+    for (const button of panel.querySelectorAll("[data-oncall-start]")) button.addEventListener("click", () => { sound?.wake(); startShift(); });
+    $("[data-oncall-exit]").addEventListener("click", exitShift);
+    $("[data-copy]").addEventListener("click", async (event) => {
+      const share = $("[data-oncall-result]").dataset.share;
+      if (!share) return;
+      const button = event.currentTarget;
+      try {
+        await navigator.clipboard.writeText(share);
+        button.textContent = "Copied";
+      } catch {
+        button.textContent = "Could not copy";
+      }
+    });
+    $("[data-sound]").addEventListener("click", (event) => {
+      const button = event.currentTarget;
+      sound = sound ? null : synth();
+      sound?.wake();
+      button.setAttribute("aria-pressed", String(!!sound));
+      button.textContent = sound ? "Sound on" : "Sound off";
+    });
   }
 
   if (still.matches && run.summary.page !== null) t = Math.min(END, run.summary.page + 300);

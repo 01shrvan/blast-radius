@@ -167,3 +167,16 @@ p{margin:0}
 .rr-trip[data-on] .rr-trip-sprung{opacity:1}
 .rr-trip[data-on] .rr-trip-armed{opacity:0}
 @media (max-width:560px){.br-figure .iso-stage{overflow:hidden;margin-inline:-16px}.br-figure .iso-svg{width:128%;max-width:none;margin-left:-14%}}
+.rr-ghost{fill:none;stroke:var(--anatomy-mid);stroke-width:1;stroke-dasharray:1.6 1.2;opacity:0;transition:opacity .3s}
+.rr-ghost[data-on]{opacity:.9}
+.br-modes{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline}
+.br-oncall{display:grid;gap:10px;padding:14px 16px;background:var(--anatomy-face)}
+.br-oncall-status{font-size:14px}
+.br-oncall-status[data-alert]{color:var(--anatomy-strong);font-weight:500}
+.br-oncall-status[data-alert]::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--anatomy-red);margin-right:9px;vertical-align:1px;animation:br-blink 1s steps(2) infinite}
+.br-oncall-result{display:grid;gap:10px}
+.br-oncall-result p{font-size:15px}
+.br-oncall-result b{font-weight:500}
+@keyframes br-blink{50%{opacity:.2}}
+@media (prefers-reduced-motion: reduce){.br-oncall-status[data-alert]::before{animation:none}}
+.br-hidden{display:none!important}
