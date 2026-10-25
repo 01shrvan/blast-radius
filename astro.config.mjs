@@ -1,10 +1,9 @@
 import { defineConfig } from "astro/config";
-import node from "@astrojs/node";
+import vercel from "@astrojs/vercel";
 
 export default defineConfig({
-  site: process.env.SITE_URL ?? "http://localhost:4321",
-  base: process.env.BASE_PATH ?? "/",
+  site: process.env.SITE_URL ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:4321"),
   trailingSlash: "ignore",
-  adapter: node({ mode: "standalone" }),
+  adapter: vercel(),
   devToolbar: { enabled: false },
 });

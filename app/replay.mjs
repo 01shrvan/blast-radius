@@ -46,6 +46,7 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const flags = [...pick("screen"), ...pick("trip")];
   const [shuttle] = pick("shuttle");
   const [leverGroup] = pick("lever");
+  const leverParts = Object.fromEntries([...leverGroup.querySelectorAll("[data-lever-part]")].map((el) => [el.dataset.leverPart, el]));
   const [gaugeEl] = pick("gauge-needle");
   const [ghostEl] = pick("ghost-needle");
   const [head] = pick("playhead");
@@ -150,9 +151,16 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
     }
     const killed = run.summary.kill !== null && t >= run.summary.kill;
     shown.lever = follow(shown.lever, killed ? THROWN : ARMED, dt, 0.12);
-    leverGroup.innerHTML = B.lever(shown.lever);
+    const { a, b } = B.leverPoints(shown.lever);
+    const d = `M${a.join(" ")}L${b.join(" ")}`;
+    leverParts.rod.setAttribute("d", d);
+    leverParts.hit.setAttribute("d", d);
+    leverParts.knob.setAttribute("cx", b[0]);
+    leverParts.knob.setAttribute("cy", b[1]);
     head.setAttribute("transform", B.translateAlong([TICK_FROM + (t / 60) * PER_MIN, 0, 0]));
-    const text = `${clockOf(t)} ${spec.clock.zone} · ${spec.figure.gauge} ${pct(now.traffic)} · ${hit} of ${COUNT} hit`;
+    const text = `${clockOf(t)} ${spec.clock.zone}
+${spec.figure.gauge} ${pct(now.traffic)}
+${hit} of ${COUNT} machines hit`;
     if (readout && readout.textContent !== text) readout.textContent = text;
     if (panel) {
       $("[data-scrub]").value = String(Math.round(t));
@@ -334,9 +342,10 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
     }
     if (mode === "done") return;
     const { page } = run.summary;
-    const note = $("[data-pull-note]");
+    const note = root.querySelector("[data-pull-note]");
     const say = (text) => { if (note) note.textContent = text; };
     if (page === null) return say("Nothing to pull in this replay.");
+    if (run.summary.kill !== null && t >= run.summary.kill) return say(`Already pulled at ${clockOf(run.summary.kill)}. Let the clock loop round to try pulling it sooner.`);
     if (t < page) return say(`Nobody knows yet. It's first detected at ${clockOf(page)}.`);
     const lever = spec.levers.find((item) => item.kind === "response");
     const minutes = Math.max(lever.range[0], Math.min(lever.range[1], Math.round((t - page) / 60)));

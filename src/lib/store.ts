@@ -25,8 +25,13 @@ export async function getGenerated(id: string) {
 }
 
 export async function saveGenerated(spec: any) {
-  await mkdir(DIR, { recursive: true });
-  await writeFile(join(DIR, `${spec.id}.json`), JSON.stringify(spec, null, 2));
+  try {
+    await mkdir(DIR, { recursive: true });
+    await writeFile(join(DIR, `${spec.id}.json`), JSON.stringify(spec, null, 2));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function findByCompany(name: string) {

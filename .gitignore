@@ -8,3 +8,7 @@ shots/
 .env
 data/
 .playwright-mcp/
+.vercel/
+
+.vercel
+.env*

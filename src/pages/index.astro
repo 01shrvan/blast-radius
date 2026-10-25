@@ -1,9 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
-import { allIncidents } from "../lib/store";
-
-export const prerender = false;
-const incidents = await allIncidents();
+import { incidents } from "../lib/incidents";
 import { bench } from "../../app/bench.mjs";
 import { figure, row } from "../../app/views.mjs";
 
@@ -27,7 +24,7 @@ const companies = new Set(incidents.map((spec) => spec.company)).size;
     <p>Every line on a page is a verbatim quote from the postmortem, linked to it, or is marked as modelled. Then you get to change one decision, like staging the rollout or pulling the kill switch sooner, and run it again.</p>
   </div>
 
-  <article class="br-contents" data-replay set:html={figure(hero, svgs[hero.id])} />
+  <article class="br-contents" data-replay set:html={figure(hero, svgs[hero.id], { keys: false })} />
   <script type="application/json" id="hero-spec" set:html={JSON.stringify(hero)} />
   <p class="br-muted">Above: <a href={`${base}/o/${hero.id}/`}>{hero.company}, {hero.title.toLowerCase()}</a>. {hero.oneLine}</p>
 

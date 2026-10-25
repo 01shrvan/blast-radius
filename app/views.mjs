@@ -36,21 +36,21 @@ const head = (index, id) => `<div class="br-section-head"><span>${String(index +
 
 export function figure(spec, svg, { keys = true } = {}) {
   const COUNT = spec.model.stages.order.length;
-  const legend = keys
-    ? `<ul>
-      <li><kbd>card</kbd><span>${esc(spec.figure.card)}</span></li>
-      <li><kbd>${COUNT}×</kbd><span>${esc(spec.figure.unit)}, dial reads ${esc(spec.figure.dial)}</span></li>
-      <li><kbd>dial</kbd><span>${esc(spec.figure.gauge)}</span></li>
-      <li><kbd>lever</kbd><span>${esc(spec.figure.kill)}, click or press Enter to pull</span></li>
+  const hints = keys
+    ? `<ul class="br-keys">
+      <li><kbd>Enter</kbd><span>pull the lever</span></li>
+      <li><kbd>Space</kbd><span>play or pause</span></li>
       <li><kbd>← →</kbd><span>step a minute</span></li>
     </ul>`
-    : "";
+    : `<p>Click the lever to pull it</p>`;
   return `<figure class="br-figure">
   <div class="iso-stage" tabindex="0" aria-label="Replay of the ${esc(spec.company)} outage">${svg}</div>
   <figcaption class="br-margin">
-    <p data-readout>${esc(spec.clock.from)}:00 ${esc(spec.clock.zone)}</p>
-    ${legend}
+    <p class="br-readout" data-readout>${esc(spec.clock.from)}:00 ${esc(spec.clock.zone)}</p>
+    ${hints}
+    <p class="br-pull-note" data-pull-note aria-live="polite"></p>
   </figcaption>
+  <p class="br-figcap">The shuttle drops ${esc(spec.figure.card.charAt(0).toLowerCase() + spec.figure.card.slice(1))} into each of ${COUNT} machines, one ${esc(spec.figure.unit)} each. Their dials read ${esc(spec.figure.dial)}, the big dial reads ${esc(spec.figure.gauge)}, and the lever on the left is the ${esc(spec.figure.kill)}. The ruler along the front is the clock.</p>
 </figure>`;
 }
 
@@ -101,7 +101,7 @@ ${figure(spec, svg)}
 <section class="br-section" id="change">${head(index("change"), "change")}
   <p class="br-muted">Each lever is a fix ${esc(spec.company)} itself listed afterwards. Flip one and the bench runs again.</p>
   <div class="br-levers">${levers}</div>
-  <div class="br-actions"><button type="button" class="br-link-button" data-pull>Pull the ${esc(spec.figure.kill)} now</button><button type="button" class="br-link-button" data-reset disabled>Back to what happened</button><span data-pull-note></span></div>
+  <div class="br-actions"><button type="button" class="br-link-button" data-pull>Pull the ${esc(spec.figure.kill)} now</button><button type="button" class="br-link-button" data-reset disabled>Back to what happened</button></div>
 </section>
 <section class="br-section" id="timeline">${head(index("timeline"), "timeline")}
   <ol class="br-log" data-log></ol>

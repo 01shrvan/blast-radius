@@ -230,12 +230,15 @@ export function bench(spec) {
     return out.join("");
   }
 
-  function lever(angle) {
+  function leverPoints(angle) {
     const [px, py, pz] = PIVOT;
-    const tip = [px + Math.sin(angle) * LEVER_L, py, pz + Math.cos(angle) * LEVER_L];
-    const a = at([px, py, pz]);
-    const b = at(tip);
-    return `<path class="iso-line" data-tone="hi" d="M${a.join(" ")}L${b.join(" ")}" style="stroke-width:2.2;stroke-linecap:round"/><circle class="rr-knob" cx="${b[0]}" cy="${b[1]}" r="${(4 * P.scale).toFixed(2)}"/><circle class="rr-pin" cx="${a[0]}" cy="${a[1]}" r="${(1.6 * P.scale).toFixed(2)}"/>`;
+    return { a: at([px, py, pz]), b: at([px + Math.sin(angle) * LEVER_L, py, pz + Math.cos(angle) * LEVER_L]) };
+  }
+
+  function lever(angle) {
+    const { a, b } = leverPoints(angle);
+    const d = `M${a.join(" ")}L${b.join(" ")}`;
+    return `<path class="rr-lever-hit" data-lever-part="hit" d="${d}"/><path class="iso-line" data-lever-part="rod" data-tone="hi" d="${d}" style="stroke-width:2.2;stroke-linecap:round"/><circle class="rr-knob" data-lever-part="knob" cx="${b[0]}" cy="${b[1]}" r="${(4 * P.scale).toFixed(2)}"/><circle class="rr-pin" cx="${a[0]}" cy="${a[1]}" r="${(1.6 * P.scale).toFixed(2)}"/>`;
   }
 
   function gauge() {
@@ -285,5 +288,5 @@ export function bench(spec) {
 
 
   const geo = { P, UNIT_X, SHUTTLE_HOME, TICK_FROM, PER_MIN, STRIP, WIDTH, HEIGHT, SEAT, MACHINE };
-  return { svg, geo, needleAt, gaugeNeedle, lever, cylinder: (x, y, r, z, h) => k.solidSvg(k.cylinder(x, y, r, z, h, P, 16), { tone: "mid", crease: "none" }), translateAlong: (by) => k.translateAlong(P, by), pin: (x, h, tone) => k.solidSvg(k.cylinder(x, STRIP.y - 3.2, 1.5, 0, h, P, 16), { tone, crease: "none" }) };
+  return { svg, geo, needleAt, gaugeNeedle, lever, leverPoints, cylinder: (x, y, r, z, h) => k.solidSvg(k.cylinder(x, y, r, z, h, P, 16), { tone: "mid", crease: "none" }), translateAlong: (by) => k.translateAlong(P, by), pin: (x, h, tone) => k.solidSvg(k.cylinder(x, STRIP.y - 3.2, 1.5, 0, h, P, 16), { tone, crease: "none" }) };
 }

@@ -180,3 +180,14 @@ p{margin:0}
 @keyframes br-blink{50%{opacity:.2}}
 @media (prefers-reduced-motion: reduce){.br-oncall-status[data-alert]::before{animation:none}}
 .br-hidden{display:none!important}
+.br-margin{gap:14px}
+.br-margin p{margin:0}
+.br-readout{font:12px/1.7 var(--anatomy-mono)!important;color:var(--anatomy-strong);white-space:pre-line;font-variant-numeric:tabular-nums}
+.br-keys{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.br-keys li{display:grid;grid-template-columns:52px 1fr;gap:10px;align-items:center}
+.br-keys kbd{justify-self:start;font:11px/1 var(--anatomy-mono);color:var(--anatomy-strong);background:var(--anatomy-face);padding:3px 6px}
+.br-figcap{grid-column:1;margin:4px 0 0;font-size:13px;color:var(--anatomy-muted);max-width:var(--br-column)}
+.rr-lever-hit{fill:none;stroke:transparent;stroke-width:22;stroke-linecap:round;pointer-events:stroke}
+[data-part="lever"]:hover .rr-knob{fill:var(--anatomy-hi)}
+.br-pull-note{font-size:12.5px;color:var(--anatomy-strong);min-height:1.2em}
+.br-pull-note:empty{display:none}

@@ -1,15 +1,15 @@
 ---
 import Base from "../../layouts/Base.astro";
-import { neighbours } from "../../lib/incidents";
-import { allIncidents, getGenerated } from "../../lib/store";
+import { incidents, neighbours } from "../../lib/incidents";
 import { bench } from "../../../app/bench.mjs";
 import { outageBody, SECTIONS } from "../../../app/views.mjs";
 
-export const prerender = false;
+export function getStaticPaths() {
+  return incidents.map((spec) => ({ params: { id: spec.id }, props: { spec } }));
+}
 
-const all = await allIncidents();
-const spec = all.find((item) => item.id === Astro.params.id) ?? (await getGenerated(Astro.params.id ?? ""));
-if (!spec) return Astro.redirect(`${import.meta.env.BASE_URL.replace(/\/$/, "")}/generate/?q=${encodeURIComponent((Astro.params.id ?? "").split("-")[0])}`);
+const { spec } = Astro.props;
+const all = incidents;
 const { svg } = bench(spec);
 const { newer, older } = neighbours(all, spec.id);
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
