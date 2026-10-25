@@ -23,7 +23,7 @@
     "dial": "CPU",
     "gauge": "traffic served",
     "kill": "global WAF terminate",
-    "machine": "pop"
+    "machine": "pegboard"
   },
   "model": {
     "stages": {

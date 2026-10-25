@@ -191,3 +191,33 @@ p{margin:0}
 [data-part="lever"]:hover .rr-knob{fill:var(--anatomy-hi)}
 .br-pull-note{font-size:12.5px;color:var(--anatomy-strong);min-height:1.2em}
 .br-pull-note:empty{display:none}
+.rr-cable{fill:none;stroke:var(--anatomy-lit);stroke-width:1.1;stroke-linecap:round;stroke-dasharray:2 3;opacity:0;transition:opacity .2s}
+.rr-cable[data-on]{opacity:1;animation:rr-flow .6s linear infinite}
+@keyframes rr-flow{to{stroke-dashoffset:-5}}
+.rr-bezel{fill:var(--anatomy-shade-1);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}
+.rr-glass{fill:var(--anatomy-face);transition:fill .2s}
+.rr-crt[data-on] .rr-glass{fill:var(--anatomy-blue)}
+.rr-desktop path{fill:none;stroke:var(--anatomy-lo);stroke-width:.5}
+.rr-desktop .rr-win{fill:var(--anatomy-top)}
+.rr-bsod{opacity:0;transition:opacity .2s}
+.rr-crt[data-on] .rr-bsod{opacity:1}
+.rr-crt[data-on] .rr-desktop{opacity:0}
+.rr-bsod-face{fill:var(--anatomy-paper);font-family:var(--br-sans);font-weight:500}
+.rr-bsod-text{fill:none;stroke:var(--anatomy-paper);stroke-width:.6;opacity:.85}
+.rr-bsod-qr{fill:var(--anatomy-paper);opacity:.85}
+.rr-scanlines{fill:none;stroke:var(--anatomy-faint);stroke-width:.3;opacity:.6}
+.rr-host-led{fill:var(--anatomy-lo)}
+.rr-host-led[data-on]{fill:var(--anatomy-green)}
+.rr-rack-led{fill:var(--anatomy-lo)}
+.rr-rack-led[data-on]{fill:var(--anatomy-lit)}
+@media (prefers-reduced-motion: reduce){.rr-cable[data-on]{animation:none}}
+.rr-board-glass{fill:var(--anatomy-face);stroke:none}
+.rr-peg{fill:var(--anatomy-lo)}
+.rr-marble{fill:var(--anatomy-top);stroke:var(--anatomy-hi);stroke-width:.35}
+.rr-marble.rr-stuck{fill:var(--anatomy-lit-top);stroke:var(--anatomy-lit)}
+.rr-tray{fill:var(--anatomy-shade-2);stroke:var(--anatomy-lo);stroke-width:var(--anatomy-weight)}
+.rr-store-dial{fill:var(--anatomy-top);stroke:var(--anatomy-mid);stroke-width:var(--anatomy-weight)}
+.rr-bail{fill:none;stroke:var(--anatomy-hi);stroke-width:1.1;stroke-linejoin:round;stroke-linecap:round}
+.rr-bar{fill:none;stroke:var(--anatomy-mid);stroke-width:.7;transition:opacity .1s}
+.rr-bug{fill:var(--anatomy-lo);stroke:none;transition:fill .15s}
+.rr-bug[data-on]{fill:var(--anatomy-red)}

@@ -40,11 +40,7 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   if (!stage.querySelector("svg")) stage.innerHTML = B.svg;
   const svg = stage.querySelector("svg");
   const pick = (part) => [...svg.querySelectorAll(`[data-part="${part}"]`)];
-  const needles = pick("needle");
-  const leds = pick("led");
-  const cards = pick("card");
-  const flags = [...pick("screen"), ...pick("trip")];
-  const [shuttle] = pick("shuttle");
+  const machine = B.mount(svg);
   const [leverGroup] = pick("lever");
   const leverParts = Object.fromEntries([...leverGroup.querySelectorAll("[data-lever-part]")].map((el) => [el.dataset.leverPart, el]));
   const [gaugeEl] = pick("gauge-needle");
@@ -54,8 +50,8 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const readout = root.querySelector("[data-readout]");
   const panel = root.querySelector("[data-play]") ? root : null;
   const still = matchMedia("(prefers-reduced-motion: reduce)");
-  const { UNIT_X, SHUTTLE_HOME, TICK_FROM, PER_MIN, SEAT } = B.geo;
-  const COUNT = UNIT_X.length;
+  const { TICK_FROM, PER_MIN } = B.geo;
+  const COUNT = spec.model.stages.order.length;
   const END = toSeconds(spec.clock.to, spec.clock.from);
   const actual = actualLevers(spec);
   const reenable = spec.events.find((event) => event.kind === "reenable");
@@ -89,7 +85,7 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   let frame = 0;
   let last = 0;
   let rest = 0;
-  const shown = { dial: UNIT_X.map(() => 0.32), traffic: 1, shuttle: SHUTTLE_HOME, lever: ARMED, card: UNIT_X.map(() => 30), cardAlpha: UNIT_X.map(() => 0) };
+  const shown = { traffic: 1, lever: ARMED };
 
   const follow = (value, target, dt, seconds) => (still.matches ? target : value + (target - value) * (1 - Math.exp(-dt / seconds)));
   const pct = (share) => `${Math.round(share * 100)}%`;
@@ -126,22 +122,8 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   function draw(dt) {
     const now = sampleAt(t);
     const front = frontAt(t, now.exposed);
-    shown.shuttle = follow(shown.shuttle, front < 0 ? SHUTTLE_HOME : UNIT_X[front], dt, 0.18);
-    shuttle.setAttribute("transform", B.translateAlong([shown.shuttle, 0, 0]));
-    let hit = 0;
-    for (let i = 0; i < COUNT; i += 1) {
-      shown.dial[i] = follow(shown.dial[i], now.dial[i], dt, 0.12);
-      needles[i].setAttribute("d", B.needleAt(i, Math.min(1, Math.max(0, shown.dial[i]))));
-      const down = now.served[i] < 0.6;
-      if (down) hit += 1;
-      leds[i].toggleAttribute("data-on", down);
-      flags.filter((el) => el.dataset.index === String(i)).forEach((el) => el.toggleAttribute("data-on", down));
-      const seated = now.exposed[i] && front >= i && shown.shuttle >= UNIT_X[i] - 3;
-      shown.card[i] = follow(shown.card[i], seated ? SEAT : 30, dt, seated ? 0.08 : 0.3);
-      shown.cardAlpha[i] = follow(shown.cardAlpha[i], seated ? 1 : 0, dt, seated ? 0.05 : 0.25);
-      cards[i].setAttribute("transform", B.translateAlong([0, 0, shown.card[i]]));
-      cards[i].style.opacity = shown.cardAlpha[i].toFixed(3);
-    }
+    const hit = now.served.filter((value) => value < 0.6).length;
+    machine({ now, front, dt, follow, t, killed: run.summary.kill !== null && t >= run.summary.kill });
     shown.traffic = follow(shown.traffic, now.traffic, dt, 0.15);
     gaugeEl.setAttribute("d", B.gaugeNeedle(Math.min(1, Math.max(0, shown.traffic))));
     const differs = mode === "free" && !sameAsActual();

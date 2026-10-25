@@ -23,7 +23,7 @@
     "dial": "health",
     "gauge": "network serving normally",
     "kill": "disabling the configuration",
-    "machine": "latch"
+    "machine": "traps"
   },
   "model": {
     "stages": {
