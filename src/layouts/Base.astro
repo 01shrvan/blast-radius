@@ -1,0 +1,64 @@
+---
+import { ISO_CSS } from "../../app/kit.mjs";
+import "../styles/site.css";
+
+interface Props {
+  title: string;
+  description: string;
+  toc?: { id: string; label: string }[];
+}
+
+const { title, description, toc = [] } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const path = Astro.url.pathname;
+
+const dark = ISO_CSS.match(/\.iso\{([^}]*)\}/)![1];
+const light = ISO_CSS.match(/\.iso\[data-theme="light"\]\{([^}]*)\}/)![1];
+const themed =
+  ISO_CSS.replace(/\.iso\{[^}]*\}/, `.iso{${light}}`).replace(/\.iso\[data-theme="light"\]\{[^}]*\}/g, "") +
+  `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .iso{${dark}}}` +
+  `:root[data-theme="dark"] .iso{${dark}}`;
+
+const links = [
+  { href: `${base}/`, label: "Blast Radius" },
+  { href: `${base}/outages/`, label: "Outages" },
+  { href: `${base}/about/`, label: "How it works" },
+];
+const current = (href: string) => path === href || (href !== `${base}/` && path.startsWith(href));
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <link rel="icon" href={`${base}/favicon.svg`} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Instrument+Serif:ital@1&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet" />
+    <style is:inline set:html={themed}></style>
+  </head>
+  <body class="iso">
+    <div class="br-page">
+      <nav class="br-side" aria-label="Site">
+        {links.map((link) => <a href={link.href} aria-current={current(link.href) ? "page" : undefined}>{link.label}</a>)}
+        {toc.length > 0 && (
+          <ol class="br-toc">
+            {toc.map((item, index) => <li><a href={`#${item.id}`}><span>{String(index + 1).padStart(2, "0")}</span>{item.label}</a></li>)}
+          </ol>
+        )}
+      </nav>
+      <main class="br-main">
+        <slot />
+        <footer class="br-foot">
+          <p>Made by <a href="https://github.com/01shrvan" target="_blank" rel="noopener">Shrvan</a>. Every replay is built from the company's own postmortem. Quotes are verbatim and linked, anything modelled says so.</p>
+          <p><a href="https://github.com/01shrvan/blast-radius" target="_blank" rel="noopener">Source on GitHub</a> · MIT · Figures drawn with <a href="https://github.com/wheresryan22/anatomy" target="_blank" rel="noopener">Anatomy</a></p>
+        </footer>
+      </main>
+    </div>
+  </body>
+</html>

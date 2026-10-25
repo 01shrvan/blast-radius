@@ -3,7 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node figure/build.mjs && node figure/build.mjs --light",
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
     "test": "node --test engine/sim.test.mjs"
+  },
+  "dependencies": {
+    "astro": "7.3.8"
   }
 }

@@ -1,0 +1,15 @@
+---
+import Base from "../layouts/Base.astro";
+import { incidents } from "../lib/incidents";
+import { bench } from "../../app/bench.mjs";
+import { row } from "../../app/views.mjs";
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const rows = incidents.map((spec) => row(spec, bench(spec).svg, `${base}/o/${spec.id}/`)).join("");
+---
+
+<Base title="Outages | Blast Radius" description="Every outage replayed so far, newest first.">
+  <p class="br-title"><b>Outages</b><span>· {incidents.length} replays, newest first</span></p>
+  <p class="br-lede">Each one is rebuilt from the company's own postmortem. Missing one? <a href={`${base}/generate/`}>Ask for it</a>.</p>
+  <div class="br-list" set:html={rows} />
+</Base>

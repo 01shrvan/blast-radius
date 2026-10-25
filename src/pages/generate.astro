@@ -1,0 +1,94 @@
+---
+import Base from "../layouts/Base.astro";
+const api = import.meta.env.PUBLIC_API_URL ?? "";
+---
+
+<Base title="Build a breakdown | Blast Radius" description="Find a company's public postmortem and rebuild its outage as a machine you can run.">
+  <p class="br-title"><b data-title>Build a breakdown</b></p>
+  <p class="br-lede">We look for the company's own public postmortem, pull out the timeline and the decisions, check every quote against the page it came from, and build the machine. If any step fails, we stop and say why.</p>
+
+  <ol class="br-steps" data-steps>
+    <li data-step="find">Find the company's public postmortem</li>
+    <li data-step="read">Read it and pull out the timeline, numbers and decisions</li>
+    <li data-step="verify">Check every quote word for word against the source</li>
+    <li data-step="fit">Match it to a machine we can draw</li>
+    <li data-step="build">Build and check the replay</li>
+  </ol>
+
+  <div class="br-miss" data-status hidden>
+    <p data-status-text></p>
+    <a class="br-link-button" data-status-link hidden></a>
+  </div>
+
+  <article class="br-contents" data-result hidden></article>
+  <span data-api={api} hidden></span>
+</Base>
+
+<script>
+  import { outageBody } from "../../app/views.mjs";
+  import { bench } from "../../app/bench.mjs";
+  import { mountReplay } from "../../app/replay.mjs";
+
+  const api = document.querySelector<HTMLElement>("[data-api]")!.dataset.api ?? "";
+  const query = new URLSearchParams(location.search).get("q")?.trim() ?? "";
+  const title = document.querySelector<HTMLElement>("[data-title]")!;
+  const status = document.querySelector<HTMLElement>("[data-status]")!;
+  const statusText = document.querySelector<HTMLElement>("[data-status-text]")!;
+  const statusLink = document.querySelector<HTMLAnchorElement>("[data-status-link]")!;
+  const result = document.querySelector<HTMLElement>("[data-result]")!;
+  const step = (name: string, state: string) => document.querySelector<HTMLElement>(`[data-step="${name}"]`)?.setAttribute("data-state", state);
+
+  function stop(text: string, link?: { href: string; label: string }) {
+    status.hidden = false;
+    statusText.textContent = text;
+    statusLink.hidden = !link;
+    if (link) {
+      statusLink.href = link.href;
+      statusLink.textContent = link.label;
+    }
+  }
+
+  const issue = (name: string) => `https://github.com/01shrvan/blast-radius/issues/new?title=${encodeURIComponent(`Breakdown request: ${name}`)}&body=${encodeURIComponent(`Company: ${name}\nPostmortem link (if you know it):\n`)}`;
+
+  async function run() {
+    if (!query) {
+      title.textContent = "Search for a company first";
+      return stop("Go back and type a company name in the search box.", { href: "../", label: "Back to search" });
+    }
+    title.textContent = `Building ${query}`;
+    if (!api) {
+      step("find", "failed");
+      return stop(`Live generation is not switched on yet. You can request ${query} and it will be built from its postmortem by hand.`, { href: issue(query), label: `Request ${query}` });
+    }
+    step("find", "active");
+    const response = await fetch(`${api}/generate`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ company: query }) }).catch(() => null);
+    if (!response?.ok || !response.body) {
+      step("find", "failed");
+      return stop("The generator did not answer. Try again in a minute.", { href: issue(query), label: `Request ${query} instead` });
+    }
+    const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += value;
+      const lines = buffer.split("\n");
+      buffer = lines.pop() ?? "";
+      for (const line of lines.filter(Boolean)) {
+        const event = JSON.parse(line);
+        if (event.step) step(event.step, event.state);
+        if (event.state === "failed") return stop(event.message, { href: issue(query), label: `Request ${query} by hand` });
+        if (event.spec) {
+          title.textContent = `${event.spec.company} | ${event.spec.title}`;
+          result.hidden = false;
+          result.style.display = "contents";
+          result.innerHTML = outageBody(event.spec, bench(event.spec).svg);
+          mountReplay(result, event.spec);
+          document.querySelector<HTMLElement>("[data-steps]")!.hidden = true;
+        }
+      }
+    }
+  }
+
+  run();
+</script>

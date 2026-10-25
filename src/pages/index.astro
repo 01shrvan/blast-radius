@@ -1,0 +1,82 @@
+---
+import Base from "../layouts/Base.astro";
+import { incidents } from "../lib/incidents";
+import { bench } from "../../app/bench.mjs";
+import { figure, row } from "../../app/views.mjs";
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const hero = incidents.find((spec) => spec.id === "cloudflare-2019-07-02") ?? incidents[0];
+const svgs = Object.fromEntries(incidents.map((spec) => [spec.id, bench(spec).svg]));
+const rows = incidents.map((spec) => row(spec, svgs[spec.id], `${base}/o/${spec.id}/`)).join("");
+const companies = new Set(incidents.map((spec) => spec.company)).size;
+---
+
+<Base title="Blast Radius" description="Famous internet outages rebuilt as small machines you can run, from each company's own postmortem.">
+  <p class="br-title"><b>Blast Radius</b><span>· outages you can replay</span></p>
+  <p class="br-lede">Pick an outage and watch <em>one bad change</em> spread through the machines again.</p>
+  <div class="br-strip">
+    {incidents.map((spec) => <a href={`${base}/o/${spec.id}/`} aria-label={`${spec.company}, ${spec.title}`} class="iso" set:html={svgs[spec.id]} />)}
+  </div>
+  <p class="br-meta"><a href="#outages">{incidents.length} {incidents.length === 1 ? "outage" : "outages"}, all live</a><span>{companies} {companies === 1 ? "company" : "companies"}</span><span>built from postmortems</span><a href={`${base}/about/`}>How it works</a></p>
+
+  <div class="br-prose">
+    <p>When a big service goes down, the company usually publishes a postmortem: its own minute by minute account of what broke. They are careful, public and mostly unread. Blast Radius rebuilds each one as <em>a small machine</em> you can run.</p>
+    <p>Every line on a page is a verbatim quote from the postmortem, linked to it, or is marked as modelled. Then you get to change one decision, like staging the rollout or pulling the kill switch sooner, and run it again.</p>
+  </div>
+
+  <article class="br-contents" data-replay set:html={figure(hero, svgs[hero.id])} />
+  <script type="application/json" id="hero-spec" set:html={JSON.stringify(hero)} />
+  <p class="br-muted">Above: <a href={`${base}/o/${hero.id}/`}>{hero.company}, {hero.title.toLowerCase()}</a>. {hero.oneLine}</p>
+
+  <section class="br-section" id="outages">
+    <div class="br-section-head"><span>01</span><h2>Outages</h2></div>
+    <label class="br-search">
+      <input id="q" type="search" placeholder="Search a company, like Fastly or CrowdStrike" autocomplete="off" aria-label="Search outages by company" />
+      <kbd>/</kbd>
+    </label>
+    <div class="br-list" data-list set:html={rows} />
+    <div class="br-miss" data-miss hidden>
+      <p data-miss-text>No replay for that one yet.</p>
+      <a class="br-link-button" data-generate href={`${base}/generate/`}>Find its postmortem and build one</a>
+    </div>
+  </section>
+</Base>
+
+<script>
+  import { mountReplay } from "../../app/replay.mjs";
+  const spec = JSON.parse(document.getElementById("hero-spec")!.textContent!);
+  mountReplay(document.querySelector("[data-replay]")!, spec);
+
+  const input = document.getElementById("q") as HTMLInputElement;
+  const rows = [...document.querySelectorAll<HTMLElement>(".br-row")];
+  const miss = document.querySelector<HTMLElement>("[data-miss]")!;
+  const missText = document.querySelector<HTMLElement>("[data-miss-text]")!;
+  const generate = document.querySelector<HTMLAnchorElement>("[data-generate]")!;
+  const target = generate.href;
+
+  function filter() {
+    const query = input.value.trim().toLowerCase();
+    let shown = 0;
+    for (const item of rows) {
+      const match = !query || (item.dataset.search ?? "").includes(query);
+      item.hidden = !match;
+      if (match) shown += 1;
+    }
+    miss.hidden = !query || shown > 0;
+    if (query) {
+      missText.textContent = `No replay for "${input.value.trim()}" yet.`;
+      generate.href = `${target}?q=${encodeURIComponent(input.value.trim())}`;
+    }
+  }
+
+  input.addEventListener("input", filter);
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" && !miss.hidden) location.href = generate.href;
+  });
+  addEventListener("keydown", (event) => {
+    if (event.key === "/" && document.activeElement !== input) {
+      event.preventDefault();
+      input.focus();
+    }
+  });
+</script>

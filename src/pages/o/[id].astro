@@ -1,0 +1,33 @@
+---
+import Base from "../../layouts/Base.astro";
+import { incidents, neighbours } from "../../lib/incidents";
+import { bench } from "../../../app/bench.mjs";
+import { outageBody, SECTIONS } from "../../../app/views.mjs";
+
+export function getStaticPaths() {
+  return incidents.map((spec) => ({ params: { id: spec.id }, props: { spec } }));
+}
+
+const { spec } = Astro.props;
+const { svg } = bench(spec);
+const { newer, older } = neighbours(spec.id);
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+const toc = SECTIONS.filter((item) => item.id !== "afterwards" || (spec.afterwards ?? []).length > 0);
+---
+
+<Base title={`${spec.company} | ${spec.title} | Blast Radius`} description={spec.oneLine} toc={toc}>
+  <article class="br-contents" data-replay set:html={outageBody(spec, svg)} />
+  {(newer || older) && (
+    <nav class="br-pager" aria-label="More outages">
+      {older ? <a href={`${base}/o/${older.id}/`}><span>Older</span>{older.company} · {older.title}</a> : <span />}
+      {newer ? <a href={`${base}/o/${newer.id}/`}><span>Newer</span>{newer.company} · {newer.title}</a> : <span />}
+    </nav>
+  )}
+  <script type="application/json" id="spec" set:html={JSON.stringify(spec)} />
+</Base>
+
+<script>
+  import { mountReplay } from "../../../app/replay.mjs";
+  const spec = JSON.parse(document.getElementById("spec")!.textContent!);
+  mountReplay(document.querySelector("[data-replay]")!, spec);
+</script>

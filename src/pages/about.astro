@@ -1,0 +1,18 @@
+---
+import Base from "../layouts/Base.astro";
+---
+
+<Base title="How it works | Blast Radius" description="How each outage replay is built from a postmortem, and what it assumes.">
+  <p class="br-title"><b>How it works</b><span>· built from what the company said, nothing more</span></p>
+  <section class="br-prose">
+    <p>Big outages usually end with a postmortem: the company's own minute by minute account of what broke and why. These are public, careful and mostly unread. Blast Radius turns each one into a small machine you can run.</p>
+    <ol>
+      <li><strong>Read.</strong> Every timeline entry, number and decision on a page carries a verbatim quote and a link to the postmortem it came from.</li>
+      <li><strong>Check.</strong> Every quote is matched word for word against the source page. If a quote is not on the page, the replay is not published.</li>
+      <li><strong>Replay.</strong> A simulation runs the outage second by second. As it happened, it has to land on the postmortem's own numbers: when the first alert fired, how much traffic was lost, when things came back. Those checks run as tests.</li>
+      <li><strong>Change one thing.</strong> The levers are the fixes the company itself listed afterwards. Flip one and the machine runs again.</li>
+    </ol>
+    <p>Postmortems leave gaps. A replay fills them only where it must, and lists each assumption on its page with the reason. Lines that come from the simulation are tagged modelled. The facts at the top of each page are always the company's own.</p>
+    <p>Each kind of outage gets its own machine. The first is the most common kind: a change pushed to every server at once. More are coming, starting with a failing dependency and a routing failure.</p>
+  </section>
+</Base>
