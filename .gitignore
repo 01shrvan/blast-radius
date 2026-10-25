@@ -7,3 +7,4 @@ shots/
 *.local
 .env
 data/
+.playwright-mcp/

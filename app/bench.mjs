@@ -4,6 +4,9 @@ export function bench(spec) {
   const WIDTH = 760;
   const HEIGHT = 420;
   const COUNT = spec.model.stages.order.length;
+  const MACHINE = spec.figure.machine ?? "pop";
+  const THICK = MACHINE === "tray" ? 2 : 1;
+  const SEAT = MACHINE === "tray" ? 7 : 0;
 
   const PLATE = { x: -262, y: -76, w: 524, d: 152, r: 8 };
   const PLATE_H = 12;
@@ -143,12 +146,33 @@ export function bench(spec) {
     const slot = { x: x - CARD.w / 2 - 1.2, y: SLOT_Y - 1, w: CARD.w + 2.4, d: CARD.d + 2, r: 1 };
     out.push(S(k.slabOf(slot, UNIT_TOP, 1.2, P, 2, 0.3), { tone: "mid" }));
     out.push(L(k.planOutline({ x: x - CARD.w / 2 - 0.2, y: SLOT_Y - 0.2, w: CARD.w + 0.4, d: CARD.d + 0.4, r: 0.4 }, UNIT_TOP + 1.2, P, 2), { tone: "lo" }));
+    if (MACHINE === "tray") {
+      const ruler = k.topTicks(slot.x + 1.2, slot.x + slot.w - 1.2, (slot.w - 2.4) / 20, 5, slot.y + slot.d - 0.8, UNIT_TOP + 1.2, [0.6, 1.2], P);
+      out.push(L(ruler.minor, { tone: "faint" }), L(ruler.major, { tone: "lo" }));
+    }
+    if (MACHINE === "latch") {
+      const pivot = [x - UNIT_W / 2 + 5, UNIT_Y + UNIT_D - 5, UNIT_TOP];
+      out.push(S(k.cylinder(pivot[0], pivot[1], 1.8, UNIT_TOP, 1.6, P, 16), { tone: "mid" }));
+      const armed = `M${at([pivot[0], pivot[1], UNIT_TOP + 1.6]).join(" ")}L${at([pivot[0] + 9, pivot[1], UNIT_TOP + 1.6]).join(" ")}`;
+      const sprung = `M${at([pivot[0], pivot[1], UNIT_TOP + 1.6]).join(" ")}L${at([pivot[0], pivot[1], UNIT_TOP + 11]).join(" ")}`;
+      const flag = (top) => `M${at([pivot[0], pivot[1], top]).join(" ")}L${at([pivot[0] + 5, pivot[1], top - 1.6]).join(" ")}L${at([pivot[0], pivot[1], top - 3.2]).join(" ")}Z`;
+      out.push(`<g data-part="trip" data-index="${index}" class="rr-trip"><path class="rr-trip-armed" d="${armed}"/><g class="rr-trip-sprung"><path d="${sprung}"/><path class="rr-flag" d="${flag(UNIT_TOP + 11)}"/></g></g>`);
+    }
     const face = UNIT_Y + UNIT_D;
-    const vent = (vx) => `M${at([vx, face, BED_H + 12]).join(" ")}L${at([vx, face, BED_H + 24]).join(" ")}`;
-    const vents = [];
-    for (let n = -4; n <= 4; n += 1) vents.push(vent(x + n * 2.6));
-    out.push(L(`M${at([x - 12, face, BED_H + 11]).join(" ")}L${at([x + 12, face, BED_H + 11]).join(" ")}L${at([x + 12, face, BED_H + 25]).join(" ")}L${at([x - 12, face, BED_H + 25]).join(" ")}Z`, { tone: "lo" }));
-    out.push(L(vents.join(""), { tone: "faint" }));
+    const quad = (x0, x1, z0, z1) => `M${at([x0, face, z0]).join(" ")}L${at([x1, face, z0]).join(" ")}L${at([x1, face, z1]).join(" ")}L${at([x0, face, z1]).join(" ")}Z`;
+    if (MACHINE === "terminal") {
+      out.push(L(quad(x - 13, x + 13, BED_H + 9, BED_H + 27), { tone: "lo" }));
+      out.push(`<path data-part="screen" data-index="${index}" class="rr-screen" d="${quad(x - 11.5, x + 11.5, BED_H + 10.5, BED_H + 25.5)}"/>`);
+      const lines = [];
+      for (let z = BED_H + 13; z <= BED_H + 23; z += 2.5) lines.push(`M${at([x - 11.5, face, z]).join(" ")}L${at([x + 11.5, face, z]).join(" ")}`);
+      out.push(`<path class="rr-scan" d="${lines.join("")}"/>`);
+    } else {
+      const vent = (vx) => `M${at([vx, face, BED_H + 12]).join(" ")}L${at([vx, face, BED_H + 24]).join(" ")}`;
+      const vents = [];
+      for (let n = -4; n <= 4; n += 1) vents.push(vent(x + n * 2.6));
+      out.push(L(quad(x - 12, x + 12, BED_H + 11, BED_H + 25), { tone: "lo" }));
+      out.push(L(vents.join(""), { tone: "faint" }));
+    }
     out.push(S(k.cylinder(x, DIAL_Y, DIAL_R + 1.2, UNIT_TOP, 1, P, 40), { tone: "lo" }));
     out.push(S(k.cylinder(x, DIAL_Y, DIAL_R, UNIT_TOP + 1, DIAL_H - 1, P, 48, 0.5), { tone: "hi", crease: "lo" }));
     out.push(L(k.ring(x, DIAL_Y, DIAL_R - 1.4, DIAL_TOP, P, 48), { tone: "lo" }));
@@ -170,10 +194,10 @@ export function bench(spec) {
 
   function card(index) {
     const x = UNIT_X[index];
-    const plan = { x: x - CARD.w / 2, y: SLOT_Y, w: CARD.w, d: CARD.d, r: 0.4 };
+    const plan = { x: x - CARD.w / 2, y: SLOT_Y - (THICK - 1) * CARD.d / 2, w: CARD.w, d: CARD.d * THICK, r: 0.4 };
     const body = S(k.slabOf(plan, UNIT_TOP + 1.2, CARD.h, P, 2, 0.3), { tone: "hi", lit: true });
     const holes = [];
-    for (let n = 0; n < 5; n += 1) holes.push(at([x - 7 + n * 3.5, SLOT_Y + CARD.d, UNIT_TOP + 1.2 + CARD.h - 4 - (n % 2) * 3]));
+    for (let n = 0; n < 5; n += 1) holes.push(at([x - 7 + n * 3.5, plan.y + plan.d, UNIT_TOP + 1.2 + CARD.h - 4 - (n % 2) * 3]));
     return `<g data-part="card" data-index="${index}" style="opacity:0">${body}${D(holes, { size: 0.55, tone: "lo" })}</g>`;
   }
 
@@ -259,6 +283,6 @@ export function bench(spec) {
   });
 
 
-  const geo = { P, UNIT_X, SHUTTLE_HOME, TICK_FROM, PER_MIN, STRIP, WIDTH, HEIGHT };
+  const geo = { P, UNIT_X, SHUTTLE_HOME, TICK_FROM, PER_MIN, STRIP, WIDTH, HEIGHT, SEAT, MACHINE };
   return { svg, geo, needleAt, gaugeNeedle, lever, cylinder: (x, y, r, z, h) => k.solidSvg(k.cylinder(x, y, r, z, h, P, 16), { tone: "mid", crease: "none" }), translateAlong: (by) => k.translateAlong(P, by), pin: (x, h, tone) => k.solidSvg(k.cylinder(x, STRIP.y - 3.2, 1.5, 0, h, P, 16), { tone, crease: "none" }) };
 }

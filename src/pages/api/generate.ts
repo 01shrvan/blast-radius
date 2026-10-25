@@ -12,6 +12,7 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
   const company = String(body.company ?? "").trim().slice(0, 80);
   const url = typeof body.url === "string" && /^https:\/\//.test(body.url) ? body.url : undefined;
   if (!company) return new Response(JSON.stringify({ error: "Say which company." }), { status: 400 });
+  const offline = !process.env.ANTHROPIC_API_KEY;
 
   const hour = Math.floor(Date.now() / 3600000);
   const key = `${clientAddress}:${hour}`;
@@ -24,12 +25,19 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
     async start(controller) {
       const send = (event: object) => controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       try {
+        const cached = await findByCompany(company);
+        if (offline && !cached) {
+          send({ step: "find", state: "failed", message: `Live building is switched off on this server for now, so ${company} can't be built automatically yet.` });
+          controller.close();
+          return;
+        }
         for await (const event of generate({ company, url }, { lookup: findByCompany })) {
           if (event.spec && event.spec.generated) await saveGenerated(event.spec);
           send(event);
         }
       } catch (error) {
-        send({ step: "build", state: "failed", message: error instanceof Error ? error.message : "Something broke while building." });
+        console.error(error);
+        send({ step: "build", state: "failed", message: "Something broke while building. Nothing was published." });
       }
       controller.close();
     },

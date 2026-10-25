@@ -28,9 +28,9 @@ for (const spec of specs) {
     });
   }
 
-  test(`${spec.id} | a staged rollout reaches fewer units`, () => {
+  test(`${spec.id} | a staged rollout loses less traffic, never more`, () => {
     const run = simulate(spec, { ...actualLevers(spec), rollout: "staged" });
-    assert.ok(run.summary.exposedUnits < spec.model.stages.order.length || run.summary.worstTraffic > simulate(spec).summary.worstTraffic);
+    assert.ok(run.summary.lostTrafficMinutes < actual.summary.lostTrafficMinutes, `${run.summary.lostTrafficMinutes} vs ${actual.summary.lostTrafficMinutes}`);
   });
 
   test(`${spec.id} | same levers, same result`, () => {

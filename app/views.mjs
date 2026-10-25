@@ -41,7 +41,8 @@ export function figure(spec, svg, { keys = true } = {}) {
       <li><kbd>card</kbd><span>${esc(spec.figure.card)}</span></li>
       <li><kbd>${COUNT}×</kbd><span>${esc(spec.figure.unit)}, dial reads ${esc(spec.figure.dial)}</span></li>
       <li><kbd>dial</kbd><span>${esc(spec.figure.gauge)}</span></li>
-      <li><kbd>lever</kbd><span>${esc(spec.figure.kill)}, click to pull</span></li>
+      <li><kbd>lever</kbd><span>${esc(spec.figure.kill)}, click or press Enter to pull</span></li>
+      <li><kbd>← →</kbd><span>step a minute</span></li>
     </ul>`
     : "";
   return `<figure class="br-figure">

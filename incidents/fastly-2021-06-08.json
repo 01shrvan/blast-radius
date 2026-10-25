@@ -1,0 +1,236 @@
+{
+  "id": "fastly-2021-06-08",
+  "company": "Fastly",
+  "title": "One customer config, 85% of a network",
+  "date": "2021-06-08",
+  "class": "config-push",
+  "oneLine": "A valid customer configuration change set off a bug shipped weeks earlier, and 85% of Fastly's network started returning errors.",
+  "clock": {
+    "from": "09:30",
+    "to": "12:45",
+    "zone": "UTC"
+  },
+  "sources": [
+    {
+      "id": "pm",
+      "title": "Summary of June 8 outage | Fastly",
+      "url": "https://www.fastly.com/blog/summary-of-june-8-outage"
+    }
+  ],
+  "figure": {
+    "card": "The customer's configuration change",
+    "unit": "edge POP",
+    "dial": "health",
+    "gauge": "network serving normally",
+    "kill": "disabling the configuration",
+    "machine": "latch"
+  },
+  "model": {
+    "stages": {
+      "order": [
+        "DOG",
+        "PIG",
+        "CANARY",
+        "CANARY",
+        "CANARY",
+        "GLOBAL",
+        "GLOBAL",
+        "GLOBAL"
+      ],
+      "share": [
+        0,
+        0.01,
+        0.02,
+        0.02,
+        0.02,
+        0.31,
+        0.31,
+        0.31
+      ]
+    },
+    "propagation": {
+      "mode": "instant",
+      "seconds": 5
+    },
+    "effect": {
+      "kind": "crash",
+      "served": 0.15
+    },
+    "recovery": {
+      "kind": "drain",
+      "tauSeconds": 490
+    },
+    "detectMinutes": 1,
+    "stageMinutes": 10
+  },
+  "facts": [
+    {
+      "label": "Network returning errors",
+      "value": "85%",
+      "quote": "which caused 85% of our network to return errors",
+      "source": "pm"
+    },
+    {
+      "label": "Time to detect",
+      "value": "1 min",
+      "quote": "We detected the disruption within one minute",
+      "source": "pm"
+    },
+    {
+      "label": "Back to 95% normal",
+      "value": "49 min",
+      "quote": "Within 49 minutes, 95% of our network was operating as normal.",
+      "source": "pm"
+    },
+    {
+      "label": "Bug shipped",
+      "value": "May 12",
+      "quote": "On May 12, we began a software deployment that introduced a bug",
+      "source": "pm"
+    }
+  ],
+  "events": [
+    {
+      "at": "09:47",
+      "kind": "deploy",
+      "label": "Disruption begins",
+      "quote": "Initial onset of global disruption",
+      "source": "pm"
+    },
+    {
+      "at": "09:48",
+      "kind": "page",
+      "label": "Monitoring catches it",
+      "quote": "Global disruption identified by Fastly monitoring",
+      "source": "pm"
+    },
+    {
+      "at": "09:58",
+      "kind": "status",
+      "label": "Status post",
+      "quote": "Status post is published",
+      "source": "pm"
+    },
+    {
+      "at": "10:27",
+      "kind": "identify",
+      "label": "Customer config identified",
+      "quote": "Fastly Engineering identified the customer configuration",
+      "source": "pm"
+    },
+    {
+      "at": "10:36",
+      "kind": "kill",
+      "label": "Recovery begins",
+      "quote": "Impacted services began to recover",
+      "source": "pm"
+    },
+    {
+      "at": "11:00",
+      "kind": "recovered",
+      "label": "Most services back",
+      "quote": "Majority of services recovered",
+      "source": "pm"
+    },
+    {
+      "at": "12:35",
+      "kind": "resolved",
+      "label": "Mitigated",
+      "quote": "Incident mitigated",
+      "source": "pm"
+    }
+  ],
+  "levers": [
+    {
+      "id": "rollout",
+      "kind": "rollout",
+      "label": "Rollout",
+      "actual": "global",
+      "options": [
+        "global",
+        "staged"
+      ],
+      "why": "One customer's valid config reached the whole network",
+      "quote": "a customer pushed a valid configuration change that included the specific circumstances that triggered the bug",
+      "source": "pm"
+    },
+    {
+      "kind": "prevent",
+      "id": "qa",
+      "label": "Bug caught in testing",
+      "actual": "missed",
+      "fix": "caught",
+      "why": "The bug shipped on May 12 and waited for the right config",
+      "quote": "We'll figure out why we didn't detect the bug during our software quality assurance and testing processes.",
+      "source": "pm",
+      "options": [
+        "missed",
+        "caught"
+      ]
+    },
+    {
+      "id": "response",
+      "kind": "response",
+      "label": "Alert to recovery",
+      "actual": 48,
+      "range": [
+        2,
+        96
+      ],
+      "why": "Finding which customer configuration set it off took most of the time",
+      "quote": "We'll evaluate ways to improve our remediation time.",
+      "source": "pm"
+    }
+  ],
+  "afterwards": [
+    {
+      "quote": "We're deploying the bug fix across our network as quickly and safely as possible.",
+      "source": "pm"
+    },
+    {
+      "quote": "We'll figure out why we didn't detect the bug during our software quality assurance and testing processes.",
+      "source": "pm"
+    },
+    {
+      "quote": "We'll evaluate ways to improve our remediation time.",
+      "source": "pm"
+    },
+    {
+      "quote": "fully leveraging the isolation capabilities of WebAssembly and Compute@Edge to build greater resiliency from the ground up",
+      "source": "pm"
+    }
+  ],
+  "checks": [
+    {
+      "metric": "pageAt",
+      "at": "09:48"
+    },
+    {
+      "metric": "killAt",
+      "at": "10:36"
+    },
+    {
+      "metric": "recoveredBy",
+      "at": "11:00"
+    },
+    {
+      "metric": "worstLost",
+      "value": 0.85,
+      "tol": 0.03
+    }
+  ],
+  "assumptions": [
+    {
+      "what": "Service comes back with a 490 second time constant once the change is pulled",
+      "why": "Fitted so the replay is back by 11:00, as the postmortem reports."
+    },
+    {
+      "what": "The change reaches every server within a few seconds",
+      "why": "The postmortem does not say how fast it spread."
+    },
+    {
+      "what": "Each staged rollout step waits 10 minutes, and early stages carry 1 to 2% of traffic each",
+      "why": "Used only when you switch the rollout to staged. The postmortem does not describe a staged path."
+    }
+  ]
+}

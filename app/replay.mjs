@@ -15,6 +15,7 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const needles = pick("needle");
   const leds = pick("led");
   const cards = pick("card");
+  const flags = [...pick("screen"), ...pick("trip")];
   const [shuttle] = pick("shuttle");
   const [leverGroup] = pick("lever");
   const [gaugeEl] = pick("gauge-needle");
@@ -23,7 +24,7 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
   const readout = root.querySelector("[data-readout]");
   const panel = root.querySelector("[data-play]") ? root : null;
   const still = matchMedia("(prefers-reduced-motion: reduce)");
-  const { UNIT_X, SHUTTLE_HOME, TICK_FROM, PER_MIN } = B.geo;
+  const { UNIT_X, SHUTTLE_HOME, TICK_FROM, PER_MIN, SEAT } = B.geo;
   const COUNT = UNIT_X.length;
   const END = toSeconds(spec.clock.to, spec.clock.from);
   const actual = actualLevers(spec);
@@ -85,8 +86,9 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
       const down = now.served[i] < 0.6;
       if (down) hit += 1;
       leds[i].toggleAttribute("data-on", down);
+      flags.filter((el) => el.dataset.index === String(i)).forEach((el) => el.toggleAttribute("data-on", down));
       const seated = now.exposed[i] && front >= i && shown.shuttle >= UNIT_X[i] - 3;
-      shown.card[i] = follow(shown.card[i], seated ? 0 : 30, dt, seated ? 0.08 : 0.3);
+      shown.card[i] = follow(shown.card[i], seated ? SEAT : 30, dt, seated ? 0.08 : 0.3);
       shown.cardAlpha[i] = follow(shown.cardAlpha[i], seated ? 1 : 0, dt, seated ? 0.05 : 0.25);
       cards[i].setAttribute("transform", B.translateAlong([0, 0, shown.card[i]]));
       cards[i].style.opacity = shown.cardAlpha[i].toFixed(3);
@@ -172,6 +174,17 @@ export function mountReplay(root, spec, { autoplay = true } = {}) {
 
   leverGroup.style.cursor = "pointer";
   leverGroup.addEventListener("click", pullNow);
+  stage.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") { event.preventDefault(); pullNow(); }
+    if (event.key === " " && panel) { event.preventDefault(); $("[data-play]").click(); }
+    if ((event.key === "ArrowRight" || event.key === "ArrowLeft") && panel) {
+      event.preventDefault();
+      t = Math.max(0, Math.min(END, t + (event.key === "ArrowRight" ? 60 : -60)));
+      playing = false;
+      $("[data-play]").textContent = "Play";
+      start();
+    }
+  });
 
   if (panel) {
     $("[data-play]").addEventListener("click", (event) => {

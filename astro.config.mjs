@@ -6,4 +6,5 @@ export default defineConfig({
   base: process.env.BASE_PATH ?? "/",
   trailingSlash: "ignore",
   adapter: node({ mode: "standalone" }),
+  devToolbar: { enabled: false },
 });

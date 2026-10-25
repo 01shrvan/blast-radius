@@ -190,7 +190,8 @@ export async function* generate({ company, url }, { client = new Anthropic(), fe
       ? { found: true, company, outage: "", date: "", urls: [url], reason: "" }
       : await ask(client, { system: FIND_SYSTEM, schema: FIND_SCHEMA, content: `Company: ${company}`, tools: [{ type: "web_search_20260209", name: "web_search", max_uses: 6 }] });
   } catch (error) {
-    yield { step: "find", state: "failed", message: `Search failed: ${error.message}` };
+    console.error(error);
+    yield { step: "find", state: "failed", message: "The search for a postmortem did not go through. Try again in a minute." };
     return;
   }
   if (!found.found || found.urls.length === 0) {
@@ -230,7 +231,8 @@ export async function* generate({ company, url }, { client = new Anthropic(), fe
     try {
       raw = await ask(client, { system: EXTRACT_SYSTEM, schema: EXTRACT_SCHEMA, content: request });
     } catch (error) {
-      yield { step: "read", state: "failed", message: `Reading failed: ${error.message}` };
+      console.error(error);
+      yield { step: "read", state: "failed", message: "Reading the postmortem did not go through. Try again in a minute." };
       return;
     }
     if (attempt === 0) yield { step: "read", state: "done" };

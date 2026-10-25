@@ -1,0 +1,245 @@
+{
+  "id": "cloudflare-2025-11-18",
+  "company": "Cloudflare",
+  "title": "A file that doubled in size",
+  "date": "2025-11-18",
+  "class": "config-push",
+  "oneLine": "A permissions change made a bot detection file double in size, every server loaded it, and the proxy crashed on the extra features.",
+  "clock": {
+    "from": "11:00",
+    "to": "15:00",
+    "zone": "UTC"
+  },
+  "sources": [
+    {
+      "id": "pm",
+      "title": "Cloudflare outage on November 18, 2025 | Cloudflare Blog",
+      "url": "https://blog.cloudflare.com/18-november-2025-outage/"
+    }
+  ],
+  "figure": {
+    "card": "The Bot Management feature file",
+    "unit": "proxy server",
+    "dial": "health",
+    "gauge": "core traffic flowing",
+    "kill": "stop on new feature files",
+    "machine": "tray"
+  },
+  "model": {
+    "stages": {
+      "order": [
+        "DOG",
+        "PIG",
+        "CANARY",
+        "CANARY",
+        "CANARY",
+        "GLOBAL",
+        "GLOBAL",
+        "GLOBAL"
+      ],
+      "share": [
+        0,
+        0.01,
+        0.02,
+        0.02,
+        0.02,
+        0.31,
+        0.31,
+        0.31
+      ]
+    },
+    "propagation": {
+      "mode": "instant",
+      "seconds": 5
+    },
+    "effect": {
+      "kind": "crash",
+      "served": 0.25
+    },
+    "recovery": {
+      "kind": "drain",
+      "tauSeconds": 128
+    },
+    "detectMinutes": 3,
+    "stageMinutes": 10
+  },
+  "facts": [
+    {
+      "label": "Feature limit",
+      "value": "200",
+      "quote": "Currently that limit is set to 200, well above our current use of ~60 features.",
+      "source": "pm"
+    },
+    {
+      "label": "File growth",
+      "value": "2x",
+      "quote": "That feature file, in turn, doubled in size.",
+      "source": "pm"
+    },
+    {
+      "label": "Regenerated",
+      "value": "every 5 min",
+      "quote": "the file was being generated every five minutes",
+      "source": "pm"
+    },
+    {
+      "label": "Core traffic",
+      "value": "majority stopped",
+      "quote": "the majority of core traffic to stop flowing through our network",
+      "source": "pm"
+    },
+    {
+      "label": "Everything normal",
+      "value": "17:06",
+      "quote": "As of 17:06 all systems at Cloudflare were functioning as normal.",
+      "source": "pm"
+    }
+  ],
+  "events": [
+    {
+      "at": "11:05",
+      "kind": "change",
+      "label": "Permissions change",
+      "quote": "Database access control change deployed.",
+      "source": "pm"
+    },
+    {
+      "at": "11:28",
+      "kind": "deploy",
+      "label": "Bad file reaches the edge",
+      "quote": "Deployment reaches customer environments, first errors observed on customer HTTP traffic.",
+      "source": "pm"
+    },
+    {
+      "at": "11:31",
+      "kind": "page",
+      "label": "First automated alert",
+      "quote": "The first automated test detected the issue at 11:31",
+      "source": "pm"
+    },
+    {
+      "at": "11:35",
+      "kind": "note",
+      "label": "Incident call",
+      "quote": "The incident call was created at 11:35.",
+      "source": "pm"
+    },
+    {
+      "at": "13:37",
+      "kind": "identify",
+      "label": "Feature file suspected",
+      "quote": "We were confident that the Bot Management configuration file was the trigger for the incident.",
+      "source": "pm"
+    },
+    {
+      "at": "14:24",
+      "kind": "kill",
+      "label": "New files stopped",
+      "quote": "Stopped creation and propagation of new Bot Management configuration files.",
+      "source": "pm"
+    },
+    {
+      "at": "14:30",
+      "kind": "recovered",
+      "label": "Core traffic back",
+      "quote": "Core traffic was largely flowing as normal by 14:30.",
+      "source": "pm"
+    }
+  ],
+  "levers": [
+    {
+      "id": "rollout",
+      "kind": "rollout",
+      "label": "Rollout",
+      "actual": "global",
+      "options": [
+        "global",
+        "staged"
+      ],
+      "why": "The regenerated file went straight to every machine",
+      "quote": "The larger-than-expected feature file was then propagated to all the machines that make up our network.",
+      "source": "pm"
+    },
+    {
+      "kind": "prevent",
+      "id": "ingest",
+      "label": "File ingestion",
+      "actual": "trusted",
+      "fix": "hardened",
+      "why": "The proxy trusted its own generated file and crashed when it broke the limit",
+      "quote": "Hardening ingestion of Cloudflare-generated configuration files in the same way we would for user-generated input",
+      "source": "pm",
+      "options": [
+        "trusted",
+        "hardened"
+      ]
+    },
+    {
+      "id": "response",
+      "kind": "response",
+      "label": "Alert to stop",
+      "actual": 173,
+      "range": [
+        2,
+        346
+      ],
+      "why": "Good and bad files flapping every few minutes first looked like an attack",
+      "quote": "Enabling more global kill switches for features",
+      "source": "pm"
+    }
+  ],
+  "afterwards": [
+    {
+      "quote": "Hardening ingestion of Cloudflare-generated configuration files in the same way we would for user-generated input",
+      "source": "pm"
+    },
+    {
+      "quote": "Enabling more global kill switches for features",
+      "source": "pm"
+    },
+    {
+      "quote": "Eliminating the ability for core dumps or other error reports to overwhelm system resources",
+      "source": "pm"
+    },
+    {
+      "quote": "Reviewing failure modes for error conditions across all core proxy modules",
+      "source": "pm"
+    }
+  ],
+  "checks": [
+    {
+      "metric": "pageAt",
+      "at": "11:31"
+    },
+    {
+      "metric": "killAt",
+      "at": "14:24"
+    },
+    {
+      "metric": "recoveredBy",
+      "at": "14:30"
+    }
+  ],
+  "assumptions": [
+    {
+      "what": "The bad file stays on every server from 11:28 until new files stop",
+      "why": "In reality good and bad files alternated every five minutes until every node produced the bad one. The postmortem does not say when that settled."
+    },
+    {
+      "what": "A hit server still serves 25% of its traffic",
+      "why": "The postmortem gives no number for how much traffic was lost."
+    },
+    {
+      "what": "Service comes back with a 128 second time constant once the change is pulled",
+      "why": "Fitted so the replay is back by 14:30, as the postmortem reports."
+    },
+    {
+      "what": "The change reaches every server within a few seconds",
+      "why": "The postmortem does not say how fast it spread."
+    },
+    {
+      "what": "Each staged rollout step waits 10 minutes, and early stages carry 1 to 2% of traffic each",
+      "why": "Used only when you switch the rollout to staged. The postmortem does not describe a staged path."
+    }
+  ]
+}

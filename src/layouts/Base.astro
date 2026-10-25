@@ -12,19 +12,15 @@ const { title, description, toc = [] } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, "");
 const path = Astro.url.pathname;
 
-const dark = ISO_CSS.match(/\.iso\{([^}]*)\}/)![1];
 const light = ISO_CSS.match(/\.iso\[data-theme="light"\]\{([^}]*)\}/)![1];
-const themed =
-  ISO_CSS.replace(/\.iso\{[^}]*\}/, `.iso{${light}}`).replace(/\.iso\[data-theme="light"\]\{[^}]*\}/g, "") +
-  `@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .iso{${dark}}}` +
-  `:root[data-theme="dark"] .iso{${dark}}`;
+const themed = ISO_CSS.replace(/\.iso\{[^}]*\}/, `.iso{${light}}`).replace(/\.iso\[data-theme="light"\]\{[^}]*\}/g, "");
 
 const links = [
   { href: `${base}/`, label: "Blast Radius" },
   { href: `${base}/outages/`, label: "Outages" },
   { href: `${base}/about/`, label: "How it works" },
 ];
-const current = (href: string) => path === href || (href !== `${base}/` && path.startsWith(href));
+const current = (href: string) => path === href || (href !== `${base}/` && path.startsWith(href)) || (href === `${base}/outages/` && path.startsWith(`${base}/o/`));
 ---
 
 <!doctype html>
@@ -60,5 +56,21 @@ const current = (href: string) => path === href || (href !== `${base}/` && path.
         </footer>
       </main>
     </div>
+    {toc.length > 0 && (
+      <script>
+        const links = [...document.querySelectorAll<HTMLAnchorElement>(".br-toc a")];
+        const sections = links.map((link) => document.querySelector<HTMLElement>(link.getAttribute("href")!)).filter(Boolean) as HTMLElement[];
+        const mark = () => {
+          const line = innerHeight * 0.35;
+          let active = sections[0];
+          for (const section of sections) if (section.getBoundingClientRect().top <= line) active = section;
+          if (innerHeight + scrollY >= document.documentElement.scrollHeight - 4) active = sections[sections.length - 1];
+          for (const link of links) link.toggleAttribute("aria-current", link.getAttribute("href") === `#${active?.id}`);
+        };
+        addEventListener("scroll", mark, { passive: true });
+        addEventListener("resize", mark);
+        mark();
+      </script>
+    )}
   </body>
 </html>

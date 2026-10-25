@@ -1,0 +1,218 @@
+{
+  "id": "crowdstrike-2024-07-19",
+  "company": "CrowdStrike",
+  "title": "Channel File 291",
+  "date": "2024-07-19",
+  "class": "config-push",
+  "oneLine": "A routine content update for CrowdStrike's Windows sensor blue-screened the Windows hosts that loaded it.",
+  "clock": {
+    "from": "04:00",
+    "to": "07:00",
+    "zone": "UTC"
+  },
+  "sources": [
+    {
+      "id": "pm",
+      "title": "Falcon Content Update Preliminary Post Incident Report | CrowdStrike",
+      "url": "https://www.crowdstrike.com/blog/falcon-content-update-preliminary-post-incident-report/"
+    }
+  ],
+  "figure": {
+    "card": "Channel File 291",
+    "unit": "Windows host",
+    "dial": "health",
+    "gauge": "hosts running",
+    "kill": "content revert",
+    "machine": "terminal"
+  },
+  "model": {
+    "stages": {
+      "order": [
+        "DOG",
+        "PIG",
+        "CANARY",
+        "CANARY",
+        "CANARY",
+        "GLOBAL",
+        "GLOBAL",
+        "GLOBAL"
+      ],
+      "share": [
+        0,
+        0.01,
+        0.02,
+        0.02,
+        0.02,
+        0.31,
+        0.31,
+        0.31
+      ]
+    },
+    "propagation": {
+      "mode": "instant",
+      "seconds": 5
+    },
+    "effect": {
+      "kind": "crash",
+      "served": 0
+    },
+    "recovery": {
+      "kind": "manual"
+    },
+    "detectMinutes": 0,
+    "stageMinutes": 10
+  },
+  "facts": [
+    {
+      "label": "Exposure window",
+      "value": "78 min",
+      "quote": "online between Friday, July 19, 2024 04:09 UTC and Friday, July 19, 2024 05:27 UTC",
+      "source": "pm"
+    },
+    {
+      "label": "Crash",
+      "value": "BSOD",
+      "quote": "resulting in a Windows operating system crash (BSOD)",
+      "source": "pm"
+    },
+    {
+      "label": "Sensors hit",
+      "value": "7.11 and above",
+      "quote": "Windows hosts running sensor version 7.11 and above",
+      "source": "pm"
+    },
+    {
+      "label": "Mac and Linux",
+      "value": "unaffected",
+      "quote": "Mac and Linux hosts were not impacted.",
+      "source": "pm"
+    }
+  ],
+  "events": [
+    {
+      "at": "04:09",
+      "kind": "deploy",
+      "label": "Content update released",
+      "quote": "CrowdStrike released a content configuration update for the Windows sensor",
+      "source": "pm"
+    },
+    {
+      "at": "05:27",
+      "kind": "kill",
+      "label": "Update reverted",
+      "quote": "The defect in the content update was reverted on Friday, July 19, 2024 at 05:27 UTC.",
+      "source": "pm"
+    }
+  ],
+  "levers": [
+    {
+      "id": "rollout",
+      "kind": "rollout",
+      "label": "Rollout",
+      "actual": "global",
+      "options": [
+        "global",
+        "staged"
+      ],
+      "why": "The update reached every online Windows sensor in the window",
+      "quote": "Implement a staggered deployment strategy for Rapid Response Content in which updates are gradually deployed to larger portions of the sensor base, starting with a canary deployment.",
+      "source": "pm"
+    },
+    {
+      "kind": "prevent",
+      "id": "validator",
+      "label": "Content Validator",
+      "actual": "missed it",
+      "fix": "caught it",
+      "why": "A validator bug let the bad template instance through",
+      "quote": "Add additional validation checks to the Content Validator for Rapid Response Content.",
+      "source": "pm",
+      "options": [
+        "missed it",
+        "caught it"
+      ]
+    },
+    {
+      "kind": "prevent",
+      "id": "handling",
+      "label": "Error handling",
+      "actual": "crash",
+      "fix": "handled",
+      "why": "The out-of-bounds read could not be handled gracefully",
+      "quote": "Enhance existing error handling in the Content Interpreter.",
+      "source": "pm",
+      "options": [
+        "crash",
+        "handled"
+      ]
+    },
+    {
+      "id": "response",
+      "kind": "response",
+      "label": "Release to revert",
+      "actual": 78,
+      "range": [
+        2,
+        156
+      ],
+      "why": "The report gives no time for the first alert, so this counts from the release",
+      "quote": "Improve monitoring for both sensor and system performance, collecting feedback during Rapid Response Content deployment to guide a phased rollout.",
+      "source": "pm"
+    }
+  ],
+  "afterwards": [
+    {
+      "quote": "Implement a staggered deployment strategy for Rapid Response Content in which updates are gradually deployed to larger portions of the sensor base, starting with a canary deployment.",
+      "source": "pm"
+    },
+    {
+      "quote": "Provide customers with greater control over the delivery of Rapid Response Content updates by allowing granular selection of when and where these updates are deployed.",
+      "source": "pm"
+    },
+    {
+      "quote": "Add additional validation checks to the Content Validator for Rapid Response Content.",
+      "source": "pm"
+    },
+    {
+      "quote": "Enhance existing error handling in the Content Interpreter.",
+      "source": "pm"
+    }
+  ],
+  "checks": [
+    {
+      "metric": "killAt",
+      "at": "05:27"
+    },
+    {
+      "metric": "worstLost",
+      "value": 1,
+      "tol": 0.03
+    },
+    {
+      "metric": "downAtEnd",
+      "value": 0.9
+    }
+  ],
+  "assumptions": [
+    {
+      "what": "Every host that loads the update crashes and serves nothing",
+      "why": "The report says loading the file crashed Windows. It gives no count of hosts."
+    },
+    {
+      "what": "Crashed hosts stay down after the revert",
+      "why": "The report says hosts online in the window were affected and later ones were not. It does not describe crashed hosts recovering on their own."
+    },
+    {
+      "what": "Detection is counted from the moment the change landed",
+      "why": "The postmortem gives no time for the first alert."
+    },
+    {
+      "what": "The change reaches every server within a few seconds",
+      "why": "The postmortem does not say how fast it spread."
+    },
+    {
+      "what": "Each staged rollout step waits 10 minutes, and early stages carry 1 to 2% of traffic each",
+      "why": "Used only when you switch the rollout to staged. The postmortem does not describe a staged path."
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+---
+import Base from "../layouts/Base.astro";
+const base = import.meta.env.BASE_URL.replace(/\/$/, "");
+---
+
+<Base title="Not found | Blast Radius" description="This page does not exist.">
+  <p class="br-title"><b>Nothing here</b><span>· 404</span></p>
+  <p class="br-lede">That page does not exist. The outage you wanted might not be built yet.</p>
+  <p class="br-meta"><a href={`${base}/`}>Back to all outages</a><a href={`${base}/generate/`}>Build a breakdown</a></p>
+</Base>

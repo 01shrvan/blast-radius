@@ -59,7 +59,8 @@ const api = import.meta.env.PUBLIC_API_URL ?? `${import.meta.env.BASE_URL.replac
     const response = await fetch(`${api}/generate`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ company: query }) }).catch(() => null);
     if (!response?.ok || !response.body) {
       step("find", "failed");
-      return stop("The generator did not answer. Try again in a minute.", { href: issue(query), label: `Request ${query} instead` });
+      const detail = response ? (await response.json().catch(() => ({}))).error : null;
+      return stop(detail ?? "The builder did not answer. Try again in a minute.", { href: issue(query), label: `Request ${query} instead` });
     }
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffer = "";
