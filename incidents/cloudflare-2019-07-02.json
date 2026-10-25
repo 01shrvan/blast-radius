@@ -1,0 +1,68 @@
+{
+  "id": "cloudflare-2019-07-02",
+  "company": "Cloudflare",
+  "title": "One regex, 27 minutes",
+  "date": "2019-07-02",
+  "class": "config-push",
+  "oneLine": "A new firewall rule with a runaway regex went to every server worldwide at once and pinned their CPUs.",
+  "clock": { "from": "13:30", "to": "15:00", "zone": "UTC" },
+  "sources": [
+    { "id": "pm", "title": "Details of the Cloudflare outage on July 2, 2019", "url": "https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/" }
+  ],
+  "figure": { "card": "The new WAF rule", "unit": "edge PoP", "dial": "CPU", "gauge": "traffic served", "kill": "global WAF terminate" },
+  "model": {
+    "stages": {
+      "order": ["DOG", "PIG", "CANARY", "CANARY", "CANARY", "GLOBAL", "GLOBAL", "GLOBAL"],
+      "share": [0, 0.01, 0.02, 0.02, 0.02, 0.31, 0.31, 0.31]
+    },
+    "propagation": { "mode": "instant", "seconds": 2.29 },
+    "effect": { "kind": "saturate", "served": 0.2, "peak": 0.99, "knee": 0.5, "tauUpSeconds": 10 },
+    "recovery": { "kind": "drain", "tauSeconds": 173 },
+    "detectMinutes": 3,
+    "stageMinutes": 10
+  },
+  "facts": [
+    { "label": "Fleet", "value": "180+ cities", "quote": "replicated across our more than 180 cities", "source": "pm" },
+    { "label": "Propagation", "value": "2.29 s", "quote": "2.29s for a change to be distributed to every machine worldwide", "source": "pm" },
+    { "label": "Peak CPU", "value": "~100%", "quote": "spiking to nearly 100% usage across the servers in our network", "source": "pm" },
+    { "label": "Traffic lost", "value": "80%", "quote": "we had lost 80% of our traffic", "source": "pm" },
+    { "label": "Duration", "value": "27 min", "quote": "27 minutes", "source": "pm" }
+  ],
+  "events": [
+    { "at": "13:31", "kind": "merge", "label": "PR merged", "quote": "had merged a Pull Request containing the change after it was approved", "source": "pm" },
+    { "at": "13:37", "kind": "build", "label": "Tests green", "quote": "TeamCity built the rules and ran the tests, giving it the green light", "source": "pm" },
+    { "at": "13:42", "kind": "deploy", "label": "Rule deployed", "quote": "deployed a minor change to the rules for XSS detection via an automatic process", "source": "pm" },
+    { "at": "13:45", "kind": "page", "label": "First page", "quote": "the first PagerDuty page went out indicating a fault with the WAF", "source": "pm" },
+    { "at": "14:00", "kind": "identify", "label": "WAF identified", "quote": "the WAF was identified as the component causing the problem and an attack dismissed as a possibility", "source": "pm" },
+    { "at": "14:07", "kind": "kill", "label": "Global terminate", "quote": "a team member executed the global WAF termination at 14:07", "source": "pm" },
+    { "at": "14:09", "kind": "recovered", "label": "Traffic back", "quote": "traffic levels and CPU were back to expected levels worldwide", "source": "pm" },
+    { "at": "14:52", "kind": "reenable", "label": "WAF re-enabled", "quote": "the WAF was re-enabled globally", "source": "pm" }
+  ],
+  "levers": [
+    { "id": "rollout", "kind": "rollout", "label": "Rollout", "actual": "global", "options": ["global", "staged"], "why": "WAF rules skipped staging by design", "quote": "Changing the SOP to do staged rollouts of rules in the same manner used for other software at Cloudflare", "source": "pm" },
+    { "id": "guard", "kind": "prevent", "label": "CPU guard", "actual": "removed", "fix": "kept", "options": ["removed", "kept"], "why": "the protection existed and had been taken out", "quote": "Re-introduce the excessive CPU usage protection that got removed.", "source": "pm" },
+    { "id": "engine", "kind": "prevent", "label": "Regex engine", "actual": "backtracking", "fix": "linear", "options": ["backtracking", "linear"], "why": "the rule backtracked catastrophically", "quote": "Switching to either the re2 or Rust regex engine which both have run-time guarantees.", "source": "pm" },
+    { "id": "response", "kind": "response", "label": "Page to terminate", "actual": 22, "range": [2, 40], "why": "Access was down, so engineers needed a bypass to reach internal tools", "quote": "with our Access service down we couldn't authenticate to our internal control panel", "source": "pm" }
+  ],
+  "afterwards": [
+    { "quote": "Re-introduce the excessive CPU usage protection that got removed. (Done)", "source": "pm" },
+    { "quote": "Switching to either the re2 or Rust regex engine which both have run-time guarantees. (ETA: July 31)", "source": "pm" },
+    { "quote": "Changing the SOP to do staged rollouts of rules in the same manner used for other software at Cloudflare", "source": "pm" },
+    { "quote": "Introduce performance profiling for all rules to the test suite. (ETA: July 19)", "source": "pm" }
+  ],
+  "checks": [
+    { "metric": "pageAt", "at": "13:45" },
+    { "metric": "killAt", "at": "14:07" },
+    { "metric": "fleetWithin", "value": 2.29 },
+    { "metric": "worstLost", "value": 0.8, "tol": 0.02 },
+    { "metric": "recoveredBy", "at": "14:09" },
+    { "metric": "outageMinutes", "value": 27, "tol": 1 }
+  ],
+  "assumptions": [
+    { "what": "Each staged rollout step waits 10 minutes", "why": "The postmortem says staging takes hours or days. 10 minutes is the least generous reading." },
+    { "what": "DOG carries no customer traffic, PIG 1%, each canary 2%", "why": "The postmortem names the stages but not their traffic share." },
+    { "what": "A PoP at nearly 100% CPU serves 20% of its traffic, and drops nothing below two thirds CPU", "why": "Calibrated to the reported 80% loss." },
+    { "what": "CPU climbs with a 10 s time constant and drains with a 173 s one", "why": "Fitted so traffic is back within two minutes of the 14:07 terminate, as reported at 14:09. The postmortem gives no CPU curve." },
+    { "what": "Detection takes 3 minutes and diagnosis keeps its share of the response in every replay", "why": "13:42 to 13:45 and 13:45 to 14:07 are the only measured human delays." }
+  ]
+}
