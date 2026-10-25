@@ -3,12 +3,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
+    "dev": "node --env-file-if-exists=.env node_modules/astro/bin/astro.mjs dev",
     "build": "astro build",
     "preview": "astro preview",
-    "test": "node --test engine/sim.test.mjs"
+    "test": "node --test engine/sim.test.mjs engine/generate.test.mjs",
+    "ingest": "node --env-file-if-exists=.env scripts/ingest.mjs",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "0.133.0",
+    "@astrojs/node": "11.1.7",
     "astro": "7.3.8"
   }
 }

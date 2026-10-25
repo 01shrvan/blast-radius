@@ -1,6 +1,9 @@
 ---
 import Base from "../layouts/Base.astro";
-import { incidents } from "../lib/incidents";
+import { allIncidents } from "../lib/store";
+
+export const prerender = false;
+const incidents = await allIncidents();
 import { bench } from "../../app/bench.mjs";
 import { row } from "../../app/views.mjs";
 

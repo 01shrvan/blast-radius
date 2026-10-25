@@ -1,6 +1,6 @@
 ---
 import Base from "../layouts/Base.astro";
-const api = import.meta.env.PUBLIC_API_URL ?? "";
+const api = import.meta.env.PUBLIC_API_URL ?? `${import.meta.env.BASE_URL.replace(/\/$/, "")}/api`;
 ---
 
 <Base title="Build a breakdown | Blast Radius" description="Find a company's public postmortem and rebuild its outage as a machine you can run.">
@@ -20,14 +20,10 @@ const api = import.meta.env.PUBLIC_API_URL ?? "";
     <a class="br-link-button" data-status-link hidden></a>
   </div>
 
-  <article class="br-contents" data-result hidden></article>
   <span data-api={api} hidden></span>
 </Base>
 
 <script>
-  import { outageBody } from "../../app/views.mjs";
-  import { bench } from "../../app/bench.mjs";
-  import { mountReplay } from "../../app/replay.mjs";
 
   const api = document.querySelector<HTMLElement>("[data-api]")!.dataset.api ?? "";
   const query = new URLSearchParams(location.search).get("q")?.trim() ?? "";
@@ -35,7 +31,6 @@ const api = import.meta.env.PUBLIC_API_URL ?? "";
   const status = document.querySelector<HTMLElement>("[data-status]")!;
   const statusText = document.querySelector<HTMLElement>("[data-status-text]")!;
   const statusLink = document.querySelector<HTMLAnchorElement>("[data-status-link]")!;
-  const result = document.querySelector<HTMLElement>("[data-result]")!;
   const step = (name: string, state: string) => document.querySelector<HTMLElement>(`[data-step="${name}"]`)?.setAttribute("data-state", state);
 
   function stop(text: string, link?: { href: string; label: string }) {
@@ -79,12 +74,8 @@ const api = import.meta.env.PUBLIC_API_URL ?? "";
         if (event.step) step(event.step, event.state);
         if (event.state === "failed") return stop(event.message, { href: issue(query), label: `Request ${query} by hand` });
         if (event.spec) {
-          title.textContent = `${event.spec.company} | ${event.spec.title}`;
-          result.hidden = false;
-          result.style.display = "contents";
-          result.innerHTML = outageBody(event.spec, bench(event.spec).svg);
-          mountReplay(result, event.spec);
-          document.querySelector<HTMLElement>("[data-steps]")!.hidden = true;
+          for (const name of ["find", "read", "verify", "fit", "build"]) step(name, "done");
+          location.href = `${api.replace(/\/api$/, "")}/o/${event.spec.id}/`;
         }
       }
     }
